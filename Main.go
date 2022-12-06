@@ -10,7 +10,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
 )
 
-type Encuesta struct {
+type Encuestado struct {
 	Nombre, Email, Edad, Genero, Gusto string
 }
 
@@ -28,7 +28,7 @@ func Conexión() (*sql.DB, error) {
 }
 
 //Función Insertar
-func Insertar(e Encuesta) (er error) {
+func Insertar(e Encuestado) (er error) {
     db, err := Conexión()
 	if err != nil {
 		return err
@@ -49,6 +49,41 @@ func Insertar(e Encuesta) (er error) {
 	}
 	return nil
 }
+
+//Función Leer
+func Leer() ([]Encuestado, error){
+    Encuestados := []Encuestado{}
+
+	db, err := Conexión()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+	filas, err := db.Query("SELECT * FROM encuestados")
+
+	if err != nil {
+		return nil, err
+	}
+	// Si llegamos aquí, significa que no ocurrió ningún error
+	defer filas.Close()
+
+	// Aquí vamos a "mapear" lo que traiga la consulta en el while de más abajo
+	var en Encuestado
+
+	// Recorrer todas las filas, en un "while"
+	for filas.Next() {
+		err = filas.Scan(&en.Nombre, &en.Email, &en.Edad, &en.Genero, &en.Gusto)
+		// Al escanear puede haber un error
+		if err != nil {
+			return nil, err
+		}
+		// Y si no, entonces agregamos lo leído al arreglo
+		Encuestados = append(Encuestados, en)
+	}
+	// Vacío o no, regresamos el arreglo de contactos
+	return encuest, nil
+}
+
 
 //Función Index
 func Index(rw http.ResponseWriter, r *http.Request) {
@@ -80,7 +115,7 @@ func Guardar(rw http.ResponseWriter, r *http.Request) {
         fmt.Println("Genero:", genero[0])
         fmt.Println("Gusta:", gusta[0])
 
-        e := Encuesta{
+        e := Encuestado{
             Nombre: nombre[0],
             Email: email[0],
             Edad: edad[0],
@@ -103,11 +138,23 @@ func Guardar(rw http.ResponseWriter, r *http.Request) {
     }
 }
 
+func Mostrar(rw http.ResponseWriter, r *http.Request) {
+    Leer()
+
+    template, err := template.ParseFiles("public/tabla.html")
+    if err != nil {
+        panic(err)
+    } else {
+        template.Execute(rw, nil)
+    }
+}
+
 // Función main
 func main() {
     //Rutas
     http.HandleFunc("/inicio", Index)
     http.HandleFunc("/guardar", Guardar)
+    http.HandleFunc("/mostrar", Mostrar)
 
     //Servidor
     fmt.Println("Servidor corriendo en http://localhost:8000/inicio")
