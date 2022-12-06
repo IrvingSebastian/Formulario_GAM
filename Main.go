@@ -11,16 +11,21 @@ import (
 )
 
 //Función Conexión
-func Conexión() (db *sql.DB, e error) {
-	usuario := "root"
-	pass := ""
-	host := "tcp(127.0.0.1:3306)"
-	base := "encuesta"
-	// Debe tener la forma usuario:contraseña@host/nombreBaseDeDatos
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s/%s", usuario, pass, host, base))
+func Conexión() (*sql.DB, error) {
+	usuario := "root:@tcp(127.0.0.1:3306)/encuesta"
+
+	db, err := sql.Open("mysql", usuario)
 	if err != nil {
+        fmt.Printf("Error obteniendo base de datos: %v", err)
 		return nil, err
 	}
+
+    err = db.Ping()
+	if err != nil {
+		fmt.Printf("Error conectando: %v", err)
+		return nil, err
+	}
+
 	return db, nil
 }
 
@@ -38,12 +43,21 @@ func Index(rw http.ResponseWriter, r *http.Request) {
 //Función Guardar
 func Guardar(rw http.ResponseWriter, r *http.Request) {
     template, err := template.ParseFiles("public/index.html")
-    names, exist := r.URL.Query()["nombre"]
 
-    if (!exist || len(names) < 0) {
-        fmt.Println("No existe el parametro")
+    nombre, existN := r.URL.Query()["nombre"]
+    email, existEm := r.URL.Query()["email"]
+    edad, existEd := r.URL.Query()["edad"]
+    genero, existGe := r.URL.Query()["genero"]
+    gusta, existGu := r.URL.Query()["gusta"]
+
+    if !existN || !existEm || !existEd || !existGe || !existGu {
+        fmt.Println("No existe algún parametro")
     } else {
-        fmt.Println("Nombre: ", names[0])
+        fmt.Println("Nombre:", nombre[0])
+        fmt.Println("Email:", email[0])
+        fmt.Println("Edad:", edad[0])
+        fmt.Println("Genero:", genero[0])
+        fmt.Println("Gusta:", gusta[0])
 
         if err != nil {
             panic(err)
@@ -62,13 +76,9 @@ func main() {
 		return
 	}
 
-    err = db.Ping()
-	if err != nil {
-		fmt.Printf("Error conectando: %v", err)
-		return
-	}
+	fmt.Println("Conectado correctamente")
 
-	fmt.Printf("Conectado correctamente")
+    db.Close()
 
     http.HandleFunc("/inicio", Index)
     http.HandleFunc("/guardar", Guardar)
