@@ -10,6 +10,10 @@ import (
     _ "github.com/go-sql-driver/mysql"
 )
 
+type Encuesta struct {
+	Nombre, Email, Edad, Genero, Gusto string
+}
+
 //Función Conexión
 func Conexión() (*sql.DB, error) {
 	usuario := "root:@tcp(127.0.0.1:3306)/encuesta"
@@ -20,13 +24,30 @@ func Conexión() (*sql.DB, error) {
 		return nil, err
 	}
 
-    err = db.Ping()
+	return db, nil
+}
+
+//Función Insertar
+func Insertar(e Encuesta) (er error) {
+    db, err := Conexión()
 	if err != nil {
-		fmt.Printf("Error conectando: %v", err)
-		return nil, err
+		return err
+	}
+	defer db.Close()
+
+    query, err := db.Prepare("INSERT INTO `encuestado`(`Nombre`, `Email`, `Edad`, `Genero`, `Gusto`) VALUES (?,?,?,?,?)")
+	if err != nil {
+		return err
 	}
 
-	return db, nil
+	defer query.Close()
+
+	// Ejecutar sentencia, un valor por cada '?'
+	_, err = query.Exec(e.Nombre, e.Email, e.Edad, e.Genero, e.Gusto)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //Función Index
@@ -59,6 +80,21 @@ func Guardar(rw http.ResponseWriter, r *http.Request) {
         fmt.Println("Genero:", genero[0])
         fmt.Println("Gusta:", gusta[0])
 
+        e := Encuesta{
+            Nombre: nombre[0],
+            Email: email[0],
+            Edad: edad[0],
+            Genero: genero[0],
+            Gusto: gusta[0],
+        }
+
+        err2 := Insertar(e)
+        if err2 != nil {
+            fmt.Println("Error al insertar", err2)
+        } else {
+            fmt.Println("Insertado correctamente")
+        }
+
         if err != nil {
             panic(err)
         } else {
@@ -70,16 +106,6 @@ func Guardar(rw http.ResponseWriter, r *http.Request) {
 // Función main
 func main() {
     //Rutas
-    db, err := Conexión()
-	if err != nil {
-		fmt.Printf("Error obteniendo base de datos: %v", err)
-		return
-	}
-
-	fmt.Println("Conectado correctamente")
-
-    db.Close()
-
     http.HandleFunc("/inicio", Index)
     http.HandleFunc("/guardar", Guardar)
 
