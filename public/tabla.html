@@ -30,14 +30,16 @@
                 <tr>
             </thead>
             <tbody>
+                {{ range . }}
                 <tr>
-                    <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
+                    <th scope="row">{{ .ID }}</th>
+                    <td>{{ .Nombre }}</td>
+                    <td>{{ .Email }}</td>
+                    <td>{{ .Edad }}</td>
+                    <td>{{ .Genero }}</td>
+                    <td>{{ .Gusto }}</td>
                 </tr>
+                {{ end }}          
             </tbody>
         </table>
     </div>
